@@ -287,7 +287,7 @@ What have we done here?
 
 ## Remove multi-clonal infections
 
-Version: bcftools v1.10.2, vcftools v0.1.16, vcfdo ([github.com/IDEELResearch/vcfdo](https://github.com/IDEELResearch/vcfdo); last accessed July 2022).
+Version: bcftools v1.10.2, vcftools v0.1.16, [vcfdo](https://github.com/IDEELResearch/vcfdo).
 
 > The F~WS~ metric estimates the heterozygosity of parasites (HW) within an individual relative to the heterozygosity within a parasite population (HS) using the read count of alleles. F~WS~ metric calculation for each sample was performed using the following equation: F~WS~=1− HW/HS where HW refers to the allele frequency of each unique allele found at specific loci of the parasite sequences within the individual, and HS refers to the corresponding allele frequencies of those unique alleles within the population. F~WS~ ranges from 0 to 1; a low F~WS~ value indicates low inbreeding rates within the parasite population and thus high within-host diversity relative to the population. An F~WS~ threshold ≥ 0.95 indicates samples with clonal (single strain) infections, while samples with an F~WS~ < 0.95 are considered highly likely to come from mixed strain infections, indicating within-host diversity.
 
@@ -308,6 +308,8 @@ done < ./list_countries.txt
 We remove the individuals with a F~WS~ > 0.95 : we keep 745 individuals.
 
 ## Remove related samples
+
+Version: bcftools v1.10.2, vcftools v0.1.16, [hmmIBD](https://github.com/glipsnort/hmmIBD).
 
 > Highly related samples and clones can generate spurious signals of population structure, bias estimators of population genetic variation, and violate the assumptions of the model-based population genetic approaches ([Wang 2018](https://doi.org/10.1111/1755-0998.12708)). The relatedness between haploid genotype pairs was measured by estimating the pairwise fraction of the genome identical by descent (*IBD*) between strains within populations.
 

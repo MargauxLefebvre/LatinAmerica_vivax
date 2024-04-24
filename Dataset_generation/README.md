@@ -305,9 +305,8 @@ What have we done here?
 
 ## Remove multi-clonal infections
 
-Version: bcftools v1.10.2, vcftools v0.1.16, vcfdo
-([github.com/IDEELResearch/vcfdo](https://github.com/IDEELResearch/vcfdo);
-last accessed July 2022).
+Version: bcftools v1.10.2, vcftools v0.1.16,
+[vcfdo](https://github.com/IDEELResearch/vcfdo).
 
 > The F<sub>WS</sub> metric estimates the heterozygosity of parasites
 > (HW) within an individual relative to the heterozygosity within a
@@ -346,6 +345,9 @@ We remove the individuals with a F<sub>WS</sub> \> 0.95 : we keep 745
 individuals.
 
 ## Remove related samples
+
+Version: bcftools v1.10.2, vcftools v0.1.16,
+[hmmIBD](https://github.com/glipsnort/hmmIBD).
 
 > Highly related samples and clones can generate spurious signals of
 > population structure, bias estimators of population genetic variation,
