@@ -9,8 +9,9 @@ The languages used are mainly bash and R. At the end of the README of each part,
 ## About the dataset... 
 
 * The sources
-* Mapping and calling
 * Ebro: take care of ancient DNA samples
+* Produce unfiltered VCF with all samples
+* Filtering of the dataset
 
 ## Population structure
 
