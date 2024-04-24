@@ -7,7 +7,7 @@ Margaux Lefebvre
 
 ## LD-pruning
 
-Version: samtools v1.10, angsd v0.940, python v3.8.12.
+Version: samtools v1.10, angsd v0.940, python v3.8.12, R v4.2.
 
 NB : I removed the outgroup, since it doesn’t make sense to keep *P.
 vivax-like* samples.
@@ -99,7 +99,7 @@ pong -m file_map.txt -i ind2pop.txt -n country_order.txt -l color.txt
 # Tree of the samples (maximum likelihood)
 
 Version: [vcf2phylip v2.0](https://doi.org/10.5281/zenodo.2540861),
-python v2.7.5, iqtree v2.0.3.
+python v2.7.5, iqtree v2.0.3, bcftools v1.10.2.
 
 I used *P. vivax-like* as an outgroup.
 
@@ -108,7 +108,7 @@ I used *P. vivax-like* as an outgroup.
 bcftools view Pvivax_filtered_final.ploidy2.vcf.gz -R core_genome.txt -o Pvivax_core.snpbi_filtered.ploidy2.vcf.gz
 
 # change vcf to phylip file
-python ./vcf2phylip/vcf2phylip.py -i PPvivax_core.snpbi_filtered.ploidy2.vcf.gz --output-prefix tree_allsamples -o p1537.PL.Cameroon
+python ./vcf2phylip/vcf2phylip.py -i Pvivax_core.snpbi_filtered.ploidy2.vcf.gz --output-prefix tree_allsamples -o p1537.PL.Cameroon
 
 # ML tree
 iqtree -s tree_allsamples.min4.phy -m MFP+ASC -T 24 --prefix tree_allsamples -o p1537.PL.Cameroon -B 1000 -alrt 1000 -st DNA #MFP+ASC = model finder for dataset with only variable sites

@@ -347,7 +347,7 @@ individuals.
 ## Remove related samples
 
 Version: bcftools v1.10.2, vcftools v0.1.16,
-[hmmIBD](https://github.com/glipsnort/hmmIBD).
+[hmmIBD](https://github.com/glipsnort/hmmIBD), R v4.2.
 
 > Highly related samples and clones can generate spurious signals of
 > population structure, bias estimators of population genetic variation,

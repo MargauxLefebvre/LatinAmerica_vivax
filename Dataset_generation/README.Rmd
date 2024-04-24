@@ -309,7 +309,7 @@ We remove the individuals with a F~WS~ > 0.95 : we keep 745 individuals.
 
 ## Remove related samples
 
-Version: bcftools v1.10.2, vcftools v0.1.16, [hmmIBD](https://github.com/glipsnort/hmmIBD).
+Version: bcftools v1.10.2, vcftools v0.1.16, [hmmIBD](https://github.com/glipsnort/hmmIBD), R v4.2.
 
 > Highly related samples and clones can generate spurious signals of population structure, bias estimators of population genetic variation, and violate the assumptions of the model-based population genetic approaches ([Wang 2018](https://doi.org/10.1111/1755-0998.12708)). The relatedness between haploid genotype pairs was measured by estimating the pairwise fraction of the genome identical by descent (*IBD*) between strains within populations.
 
