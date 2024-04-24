@@ -1,7 +1,7 @@
 About the dataset…
 ================
 Margaux Lefebvre
-2024-04-12
+2024-04-24
 
 # The sources
 
@@ -130,7 +130,7 @@ equally or better with *P. falciparum* than *P. vivax*. So as they did
 in [Van Dorp *et al.* (2020)](https://doi.org/10.1093/molbev/msz264), I
 remove them.
 
-### Remove the reads that map better on P. falciparum
+### Remove the reads that map better on *P. falciparum*
 
 ``` bash
 echo "--> Start processing: $downId" #downId is the name of the sample
@@ -217,4 +217,231 @@ tabix  vivax_temp.raw_variants.ploidy2.vcf.gz
 #Keep nuclear core_genome
 bcftools view  vivax_temp.raw_variants.ploidy2.vcf.gz -R vivax_core_genome.bcf.txt -O z -o vivax.core.snps.ploidy2.vcf.gz
 tabix vivax.core.snps.ploidy2.vcf.gz
+```
+
+# Filtering of the dataset
+
+## Quality and depth filtering
+
+Version: bcftools v1.10.2, vcftools v0.1.16.
+
+First, I will focus on the VCF with ploidy = 2. With this file, I can
+calculate the co-infection index, essential to filter the dataset
+properly.
+
+``` bash
+# Filter out a little to have only the information we need
+
+### Keep only SNPs, regardless the number of alleles, the MAF or even the quality
+vcftools --gzvcf vivax.core.snps.ploidy2.vcf.gz \
+--remove-indels --non-ref-ac-any 1 \
+--recode --stdout | bgzip -c > Pvivax_total_snp.ploidy2.vcf.gz
+
+# See the info
+VCF=Pvivax_total_snp.ploidy2.vcf.gz
+OUT=Pvivax_total.ploidy2
+
+vcftools --gzvcf $VCF --freq2 --out $OUT --max-alleles 2 &
+vcftools --gzvcf $VCF --depth --out $OUT &
+vcftools --gzvcf $VCF --site-mean-depth --out $OUT &
+vcftools --gzvcf $VCF --site-quality --out $OUT &
+vcftools --gzvcf $VCF --missing-indv --out $OUT &
+vcftools --gzvcf $VCF --missing-site --out $OUT &
+```
+
+Filtering info:
+
+- The minimum variant quality (Phred score) is 30; it’s ok.
+- For the variant mean depth, we will set the minimum at 10X. The
+  maximum will be set at 106X (= mean depth + twice the
+  standard-deviation).
+- For the individual mean depth, we will set the minimum at 10X and the
+  maximum at 164X (= mean depth + twice the standard-deviation).
+- We remove all the individuals with more than 50% of missing data: it
+  removes 68 sample.
+- Remove all the SNPs with more than 20% of missing data.
+- To avoid sequencing error, we usually put the MAF at 1/number of
+  samples : 1/(1133-68)=0.000938967
+
+Applying filters to VCF
+
+``` bash
+VCF_IN=Pvivax_total_snp.ploidy2.vcf.gz
+VCF_OUT=Pvivax_total_snpbi_filtered.ploidy2.vcf.gz
+
+# set filters
+MAF=0.000938967
+MISS=0.8
+QUAL=30
+MIN_DEPTH_SNP=10
+MAX_DEPTH_SNP=106
+MIN_DEPTH=10
+MAX_DEPTH=164
+
+vcftools --gzvcf $VCF_IN --remove remove_miss.txt --min-alleles 2 --max-alleles 2 \
+--remove-indels --maf $MAF --max-missing $MISS --minQ $QUAL \
+--min-meanDP $MIN_DEPTH_SNP --max-meanDP $MAX_DEPTH_SNP \
+--minDP $MIN_DEPTH --maxDP $MAX_DEPTH --recode --stdout | gzip -c > $VCF_OUT
+```
+
+What have we done here?
+
+- `--remove remove_miss.txt` - remove all all the individuals with more
+  than 50% of missing data
+- `--min-alleles 2 --max-alleles 2` - keep only the bi-allelic SNPs
+- `--remove-indels` - remove all indels (SNPs only)
+- `--maf`- set minor allele frequency - here 1/number of samples
+- `--max-missing` - set minimum missing data. A little counter
+  intuitive - 0 is totally missing, 1 is none missing. Here 0.8 means we
+  will tolerate 20% missing data.
+- `--minQ` - this is just the minimum quality score required for a site
+  to pass our filtering threshold. Here we set it to 30.
+- `--min-meanDP` - the minimum mean depth for a site.
+- `--max-meanDP` - the maximum mean depth for a site.
+- `--minDP` - the minimum depth allowed for a genotype - any individual
+  failing this threshold is marked as having a missing genotype.
+- `--maxDP` - the maximum depth allowed for a genotype - any individual
+  failing this threshold is marked as having a missing genotype.
+
+## Remove multi-clonal infections
+
+Version: bcftools v1.10.2, vcftools v0.1.16, vcfdo
+([github.com/IDEELResearch/vcfdo](https://github.com/IDEELResearch/vcfdo);
+last accessed July 2022).
+
+> The F<sub>WS</sub> metric estimates the heterozygosity of parasites
+> (HW) within an individual relative to the heterozygosity within a
+> parasite population (HS) using the read count of alleles.
+> F<sub>WS</sub> metric calculation for each sample was performed using
+> the following equation: F<sub>WS</sub>=1− HW/HS where HW refers to the
+> allele frequency of each unique allele found at specific loci of the
+> parasite sequences within the individual, and HS refers to the
+> corresponding allele frequencies of those unique alleles within the
+> population. F<sub>WS</sub> ranges from 0 to 1; a low F<sub>WS</sub>
+> value indicates low inbreeding rates within the parasite population
+> and thus high within-host diversity relative to the population. An
+> F<sub>WS</sub> threshold ≥ 0.95 indicates samples with clonal (single
+> strain) infections, while samples with an F<sub>WS</sub> \< 0.95 are
+> considered highly likely to come from mixed strain infections,
+> indicating within-host diversity.
+
+Source : [Amegashie et
+al. (2020)](https://doi.org/10.1186/s12936-020-03510-3).
+
+The F<sub>WS</sub> must be calculated by population. So we split up the
+VCF by country. We only calculated F<sub>WS</sub> for the modern
+samples.
+
+``` bash
+conda activate vcfdo
+while read file_sample
+do 
+vcftools --gzvcf Pvivax_total_snpbi_filtered.ploidy2.vcf.gz --keep ./countries/$file_sample.tsv --recode --stdout | gzip -c > ./vcf_countries/$file_sample.vcf.gz #create the file by country
+echo "Sample  Fws Standard_errors nb_sites" > ./fws/fws_$file_sample.txt
+vcfdo wsaf -i ./vcf_countries/$file_sample.vcf.gz | vcfdo fws >> ./fws/fws_$file_sample.txt #calculate fws
+done < ./list_countries.txt
+```
+
+We remove the individuals with a F<sub>WS</sub> \> 0.95 : we keep 745
+individuals.
+
+## Remove related samples
+
+> Highly related samples and clones can generate spurious signals of
+> population structure, bias estimators of population genetic variation,
+> and violate the assumptions of the model-based population genetic
+> approaches ([Wang 2018](https://doi.org/10.1111/1755-0998.12708)). The
+> relatedness between haploid genotype pairs was measured by estimating
+> the pairwise fraction of the genome identical by descent (*IBD*)
+> between strains within populations.
+
+The IBD must be calculated by countries (only with n\>=2).
+
+We used hmmIBD that as a specific format as an input, with only haploid
+information. For the sites that was heterozygote, they were marked as
+missing data.
+
+``` bash
+while read country_name
+do
+vcftools --gzvcf Pvivax_total_snpbi_filtered.ploidy2.vcf.gz --keep ./countries/$file_sample.tsv --remove remove_fws_only.txt --recode --stdout | gzip -c > ./vcf_countries/${country_name}.vcf.gz #create the file by country and remove multi-clonal samples
+
+# Transform in hmmIBD format
+bcftools annotate -x INFO,^FORMAT/GT ./vcf_countries/${country_name}.vcf.gz | grep -v "##" |cut -d$'\t' -f1-2,10- > temp0_${country_name}
+
+sed 's/0\/0/0/g' temp0_${country_name} > temp1_${country_name}
+sed 's/1\/1/1/g' temp1_${country_name} > temp2_${country_name}
+sed 's/1\/0/-1/g' temp2_${country_name} > temp3_${country_name}
+sed 's/0\/1/-1/g' temp3_${country_name} > temp4_${country_name}
+sed 's/0\/1/-1/g' temp4_${country_name} > temp5_${country_name}
+sed 's/.\/./-1/g' temp5_${country_name} > temp6_${country_name}
+sed 's/PvP01_\([0-9][0-9]*\)_v1/\1/g' temp6_${country_name} > temp7_${country_name} #Change chromosome name to chromosome number
+sed 's/vPvP01_\([0-9][0-9]*\)_v1/\1/g' temp7_${country_name} > ./hmm_format/${country_name}_hmm.pf
+
+#Calculate IBD
+hmmIBD -i ./hmm_format/${country_name}_hmm.pf -o ./IBD/IBD_${country_name}
+done < ./list_countries.txt
+```
+
+Isolate pairs that shared \>50% of IBD are considered highly related. In
+each family of related samples, only the strain with the lowest amount
+of missing data was retained:
+
+``` r
+# Read all IBD files
+IBD_all <-
+    list.files(path="./Data/IBD/",
+               pattern = "*.hmm_fract.txt", 
+               full.names = T) %>% 
+    map_dfr(~read_table(.), show_col_types=F)
+
+# Add meta-informations
+metadata_vivax<-read_delim("./Data/metadata_vivax_fws.csv", 
+     delim = "\t", escape_double = FALSE, 
+    trim_ws = TRUE, show_col_types = FALSE)
+metadata_vivax<-metadata_vivax[,c(1,2,9,16)]
+colnames(metadata_vivax)<-c("sample_ID","species","country","population")
+metadata_vivax$sample1<-metadata_vivax$sample_ID
+IBD_all<-inner_join(IBD_all, metadata_vivax)
+
+total_list<-unique(c(IBD_all$sample1,IBD_all$sample2)) # List of all the samples
+# Only keep pair of individuals with IBD>0.5
+fam_IBD<-subset(IBD_all, IBD_all$fract_sites_IBD>0.5)
+
+#Assign family factor by individuals
+clst = data.frame(ind = c(as.character(fam_IBD$sample1[1]), as.character(fam_IBD$sample2[1])), grp = c(1,1)) # initialize data.frame
+clst
+for(i in 2:dim(fam_IBD)[1]){
+  if(length(which(as.character(fam_IBD$sample1[i])==clst$ind))>0){
+    tmp = data.frame(ind = c(as.character(fam_IBD$sample1[i]), as.character(fam_IBD$sample2[i])), grp = c(clst$grp[which(as.character(fam_IBD$sample1[i])==clst$ind)],clst$grp[which(as.character(fam_IBD$sample1[i])==clst$ind)]))
+    clst = rbind(clst, tmp)
+  } else if(length(which(as.character(fam_IBD$sample2[i])==clst$ind))>0){
+    tmp = data.frame(ind = c(as.character(fam_IBD$sample1[i]), as.character(fam_IBD$sample2[i])), grp = c(clst$grp[which(as.character(fam_IBD$sample2[i])==clst$ind)],clst$grp[which(as.character(fam_IBD$sample2[i])==clst$ind)]))
+    clst = rbind(clst, tmp)
+  } else {
+    tmp = data.frame(ind = c(as.character(fam_IBD$sample1[i]), as.character(fam_IBD$sample2[i])), grp = c(max(clst$grp)+1,max(clst$grp)+1))
+    clst = rbind(clst, tmp)
+  }
+  clst = unique(clst)
+}
+
+# import the information of missing data (from vcftools, see above)
+ind_miss  <- read_delim("./Data/Pvivax_total.ploidy2.imiss", delim = "\t",
+                        col_names = c("ind", "ndata", "nfiltered", "nmiss", "fmiss"), skip = 1, show_col_types = FALSE)
+data_fam<-inner_join(clst, ind_miss)
+
+### Remove with IBD only
+#keep the individual in each family with the less missing data
+unrelated<-data_fam %>% 
+    group_by(grp) %>% 
+    slice(which.min(fmiss))
+```
+
+## Create the final dataset filtered
+
+Keep only the samples of the analysis dataset (mono-clonal and not
+inbred): 622 samples.
+
+``` bash
+vcftools --gzvcf Pvivax_total_snpbi_filtered.ploidy2.vcf.gz --remove remove_fws_only.txt --remove remove_IBD_only.txt --recode --stdout | gzip -c > Pvivax_filtered_final.ploidy2.vcf.gz
 ```
