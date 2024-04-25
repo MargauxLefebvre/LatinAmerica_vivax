@@ -1,0 +1,303 @@
+---
+title: "Population graphs and f statistics"
+author: "Margaux Lefebvre"
+date: "`r Sys.Date()`"
+output:
+  github_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,eval = FALSE) #prevent all chunks from running
+library(tidyverse)
+```
+
+# TreeMix
+
+## Prepare the VCF
+
+Version: bcftools v1.10.2.
+
+```{bash}
+# We subset the number of populations to speed up the analysis and compare with AdmixtureBayes
+bcftools view Pvivax_filtered_final.ploidy2.vcf.gz -R core_genome.txt -S subset.pop -Oz -o subset.vcf.gz 
+
+# TreeMix cannot handle missing data. With Ebro (ancient DNA sample), we filtered to keep only SNPs present in Ebro
+bcftools viewsubset.vcf.gz -s Ebre_composite.PV.mem -o Ebro_only.vcf.gz -O z
+tabix Ebro_only.vcf.gz
+
+bcftools view -g ^miss Ebro_only.vcf.gz -Oz -o Ebro_only.no_miss.vcf.gz
+
+bcftools query -f '%CHROM\t%POS\n' Ebro_only.no_miss.vcf.gz > SNP_position.txt
+
+bcftools view subset.vcf.gz -R SNP_position.txt -Oz -o subset.ebro_no_miss.vcf.gz
+```
+
+## LD-pruning
+
+Version: PLINK v2.
+
+TreeMix assumes unlinked SNPs, so we prune the file for SNPs in high LD.
+
+```{bash}
+plink2 --vcf subset.ebro_no_miss.vcf.gz --double-id --allow-extra-chr \
+--set-missing-var-ids @:# \
+--indep-pairwise 50 10 0.5 --out Prune
+
+plink2 --vcf subset.ebro_no_miss.vcf.gz --double-id --allow-extra-chr --set-missing-var-ids @:# \
+--extract Prune.prune.in --mind --geno --mac 1 \
+--export ped --make-just-fam --out Pvivax_tree #-make-just-fam to get the samples names remaining
+```
+
+## Create input format for TreeMix.
+
+Version: R v4.2, PLINK v1.9, python v2.7.5.
+
+Create the clust file
+```{r}
+library(readr)
+Pvivax_tree <- read_delim("./Data/Pvivax_tree.fam", 
+    delim = "\t", escape_double = FALSE, 
+    col_names =c("sample_ID","sample_ID_bis"), trim_ws = TRUE)
+Pvivax_tree<-Pvivax_tree[,c(1,2)]
+
+Samples_data<-read_delim("./metadata_vivax.tsv", 
+     delim = "\t", show_col_types = FALSE)
+Samples_data<-Samples_data[,c(1,9)]
+colnames(Samples_data)<-c("sample_ID","country")
+Pvivax_tree<-inner_join(Pvivax_tree,Samples_data)
+Pvivax_tree$country <- sub(" ", "_", Pvivax_tree$country)
+
+write_tsv(Pvivax_tree, "./Data/total.clust", col_names = F)
+```
+
+Convert it to a stratified frq file, also creates .bed, .bim, .fam, .log, .nosex, and make the input file.
+```{bash}
+plink --file Pvivax_tree --make-bed --out Pvivax_tree --allow-no-sex --allow-extra-chr 0
+plink --bfile Pvivax_tree --freq --missing --within total.clust --out Pvivax_tree --allow-no-sex --allow-extra-chr 0
+
+# zip it
+gzip Pvivax_tree.frq.strat
+
+# create input file for treemix
+python plink2tree.py Pvivax_tree.frq.strat.gz Pvivax_subset.tree.frq.gz
+```
+Script plink2tree.py in this directory.
+
+TreeMix cannot handle missing data so we keep only the sites with at least data in all the population
+
+```{r}
+# Read data
+library(readr)
+treemix <- read_table("./Data/Pvivax_subset.tree.frq.gz")
+treemix<-treemix[,1:20]
+# Replace the missing data by NA
+treemix[treemix =="0,0"] <- NA
+# Remove the NA
+treemix_nomiss<-na.omit(treemix)
+#Write the new input file
+write.table(treemix_nomiss, "./Data/Pvivax_subset.tree.nomiss.frq", quote = FALSE, row.names = FALSE)
+```
+
+## Find the optimal number of migration edges
+
+Version: TreeMix v1.13, phylip v3.695.
+
+OptM package uses results from the population software Treemix by [Pickrell and Pritchard (2012)](DOI:10.1371/journal.pgen.1002967) to estimate the optimal number of migrations edges to add to the tree. [Here](https://www.rdocumentation.org/packages/OptM/versions/0.1.6) the link to the documentation.
+
+```{bash}
+for i in {1..15}
+do
+for m in {1..10}
+do
+ treemix -i Pvivax_subset.tree.nomiss.frq.gz -m $m -o ./treemix_results_subset/P_vivax_treemix.$i.$m -root Cameroon.PL -k 50 -seed $i$m -bootstrap > ./treemix_results_subset/treemix_${m}_log$i
+done
+done
+```
+
+Then we compare all the values of migration edges
+```{r}
+library(OptM)
+# Evanno like method
+test.optM = optM("./Data/treemix_results_subset/")
+
+# Plots
+ylim.prim <- c(min(test.optM$`mean(Lm)`), max(test.optM$`mean(Lm)`))  
+ylim.sec <- c(min(test.optM$`mean(f)`, na.rm=T)-0.01, 1)
+b <- diff(ylim.prim)/diff(ylim.sec)
+a <- ylim.prim[1] - b*ylim.sec[1]
+
+p1<- ggplot(test.optM, aes(x=m, y=test.optM$`mean(Lm)`)) + 
+    geom_point(alpha=0.3)+ scale_y_continuous("Likelihood +/- SD", sec.axis = sec_axis(~ (. - a)/b, name = "Variance explained +/- SD"))+
+      geom_errorbar(aes(ymin=test.optM$`mean(Lm)`-test.optM$`sd(Lm)`, ymax=test.optM$`mean(Lm)`+test.optM$`sd(Lm)`), width=.2,position=position_dodge(.9))+theme_classic()+ 
+    geom_point(aes(x=m, y=a + b*test.optM$`mean(f)`),alpha=0.3,color="red")+
+      scale_x_continuous("m (number of migration edges)", breaks = 0:15) +
+  theme(axis.line.y.right = element_line(color = "red"), 
+        axis.ticks.y.right = element_line(color = "red"),
+        axis.text.y.right = element_text(color = "red"), 
+        axis.title.y.right = element_text(color = "red")
+        ) +
+      geom_errorbar(aes(ymin=(a + b*test.optM$`mean(f)`)-test.optM$`sd(f)`, ymax=(a + b*test.optM$`mean(f)`)+test.optM$`sd(f)`), width=.2, position=position_dodge(.9), color="red")+
+      geom_hline(yintercept = a+b*0.998, color="red",linetype="dotted")
+p1
+
+p2<-ggplot(test.optM, aes(x=m, y=Deltam)) + 
+    geom_point(color="royalblue")+geom_line(alpha=0.3, color="royalblue")+
+      scale_x_continuous("m (number of migration edges)", breaks = 0:15)+theme_classic()+ 
+  theme(axis.line.y.right = element_line(color = "white"), 
+        axis.ticks.y.right = element_line(color = "white"),
+        axis.text.y.right = element_text(color = "white"), 
+        axis.title.y.right = element_text(color = "white")
+        )+ylab("\u0394 m")
+p2
+```
+The best m values are 1 or 5 so we run 100 times TreeMix to have consensus tree with bootstrap.
+
+## Find the consensus tree
+
+```{bash}
+# run the bootstraps
+for m in {1,5}
+do
+for i in {1..100}
+do
+treemix -i Pvivax_subset.tree.nomiss.frq.gz -bootstrap -k 50 -se -m $m -seed $RANDOM -o tree_consensus_m${m}_tree_bootrep_$i -root Cameroon.PL > treemix_total_log$i &
+done
+done
+
+###### Create a file with all the bootstrapped trees
+for m in {1,5}
+do
+rm tree_consensus_m${m}_boottree.tre
+for i in {1..100}
+do
+    bootf=tree_consensus_m${m}_tree_bootrep_$i.treeout.gz
+    gunzip -c $bootf | head -1 >> tree_consensus_m${m}_boottree.tre
+done
+
+###### Clean the environment
+rm -rf outfile outtree screanout
+
+## Create parameters file
+echo tree_consensus_m${m}_boottree.tre > tree_consensus_m${m}_PhylipInputFile
+    echo "Y" >> tree_consensus_m${m}_PhylipInputFile
+
+## Run Phylip
+/usr/local/phylip-3.696/exe/consense < tree_consensus_m${m}_PhylipInputFile > screanout
+
+###### The output from Phylip will be modified because:
+###### 1) Treemix accept only one line tree
+###### 2) Treemix accept newick format file
+##sed ':a;N;$!ba;s/\n//g' outtree > $outname"_outtree.newick"
+cat outtree | tr -d "\n" > tree_consensus_m${m}_outtree.newick
+echo >> tree_consensus_m${m}_outtree.newick
+
+###### Run TreeMix with the chosen number of migrations by loading the consensus tree ######
+treemix -i  Pvivax_subset.tree.nomiss.frq.gz -m ${m} -k 1 -se -tf tree_consensus_m${m}_outtree.newick -o tree_consensus_m${m} -root Cameroon.PL > tree_consensus_m${m}_logfile_tree_boot.log
+done
+```
+
+## Plots
+
+Version: R v4.2.
+
+Example with m=1, but it's the same for every m values.
+
+```{r}
+# Consensus tree
+library(BITE)
+treemix.bootstrap(in.file = "./Data/treemix_subset_consensus/tree_consensus_m1",out.file = "./Data/output_tree_m1",phylip.file = "./Data/treemix_subset_consensus/tree_consensus_m1_outtree.newick",nboot=100, plotmig = T, boot.legend.location='bottomright')
+# Residual & drift
+plot_resid("./Data/tree_consensus_m1","./Data/pop.order")
+treemix.drift("./Data/tree_consensus_m1","./Data/pop.order")
+```
+
+# AdmixtureBayes
+
+Version: python v3.11.0.
+
+The input file is the same as for TreeMix. For info and manual for Admixture Bayes [here](https://github.com/avaughn271/AdmixtureBayes).
+
+**Warning:** Special characters such as commas, hyphens, and underscores are not allowed. I have to change the header of my `Pvivax_subset.tree.nomiss.frq.gz` file.
+
+## Run MCMC
+
+I launched three independent runs (`i`).
+
+```{bash}
+for i in {1..3}
+do
+python runMCMC.py --input_file Pvivax_admbayes_subset.txt --outgroup CameroonPL --n 500000 --result_file  chain${i}.txt --MCMC_chains 40 --bootstrap_blocksize 100
+done
+```
+
+I evaluated the convergence of the runs with the script [EvaluateConvergence.R](https://github.com/avaughn271/AdmixtureBayes/blob/main/EvaluateConvergence.R).
+
+## Analyze the samples
+
+```{bash}
+for i in {1..3}
+do
+mkdir resultsadm.${i}
+cd resultsadm.${i}
+python ./admixturebayes/analyzeSamples.py --mcmc_results chain${i}.txt --slower
+cd ..
+done
+```
+
+## Plot the trees
+
+```{bash}
+for i in {1..3}
+do
+cd resultsadm.${i}
+python ./admixturebayes/makePlots.py --plot top_trees --posterior thinned_samples.csv --write_rankings chain${i}rankings.txt
+python ./admixturebayes/makePlots.py --plot estimates --posterior thinned_samples.csv
+python ./admixturebayes/makePlots.py --plot consensus_trees --posterior thinned_samples.csv 
+cd ..
+done
+```
+
+# *f~3~*-statistics
+
+Version: R v4.2, ADMIXTOOLS2 v2.0.0.
+
+## Read and compute the f2
+
+```{r}
+library(admixtools)
+library(tidyverse)
+prefix = './Data/admixtools/Pvivax_tree'
+my_f2_dir = './Data/admixtools/Pvivax_tree'
+
+extract_f2(prefix, my_f2_dir,auto_only = FALSE, overwrite = TRUE, blgsize=150) # To run only the first time
+
+f2_blocks = f2_from_precomp(my_f2_dir)
+count_snps(f2_blocks)
+```
+
+## Admixture *f~3~*-statistics: are the American populations admixed ?
+
+```{r}
+# Calculate the f3
+f3_aa = admixtools::f3(f2_blocks, pop1=c('Peru','Colombia','Mexico','Honduras','Ecuador', 'Brazil', 'Venezuela', 'French_Guiana', 'Guyana'), pop2=c('Peru','Colombia','Mexico','Honduras','Ecuador', 'Brazil', 'Venezuela', 'French_Guiana', 'Guyana', 'India', 'Afghanistan', 'Ethiopia', 'Mauritania', 'Indonesia', 'PNG', 'Malaysia','Spain'), pop3=c('Peru','Colombia','Mexico','Honduras','Ecuador', 'Brazil', 'Venezuela', 'French_Guiana', 'Guyana', 'India', 'Afghanistan', 'Ethiopia', 'Mauritania', 'Indonesia', 'PNG', 'Malaysia','Spain')) %>% arrange(est)
+
+# Remove f3 stats where pop1, pop2 or pop3 are the same because it doesn't make sense, and na values
+f3_aa <- f3_aa[f3_aa$pop3!=f3_aa$pop2,]
+f3_aa <- f3_aa[f3_aa$pop3!=f3_aa$pop1,]
+f3_aa <- f3_aa[f3_aa$pop1!=f3_aa$pop2,]
+f3_aa<-na.omit(f3_aa)
+
+# Set for the y axis for the plot
+f3_aa$y.axis<-NA
+for (i in 1:nrow(f3_aa)){
+  temp<-sort(c(f3_aa$pop3[i], f3_aa$pop2[i]))
+  f3_aa$y.axis[i]<-paste0(temp[1]," - ", temp[2])
+}
+
+# Plot
+f3_aa %>% 
+    mutate(is_significant=z < -3, y.axis=fct_reorder(y.axis, -est)) %>% 
+    ggplot(aes(x=y.axis, y=est, ymin=est-3*se, ymax = est+3*se, color=is_significant)) +
+    geom_point() + geom_errorbar() +geom_hline(yintercept = 0) + coord_flip() + theme_bw(10) +
+    xlab(NULL) + ylab("f3")+facet_wrap(.~pop1, scales = "free_x", ncol=5)+theme(legend.position="none")
+```
