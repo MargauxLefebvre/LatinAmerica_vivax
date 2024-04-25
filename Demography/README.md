@@ -1,4 +1,4 @@
-Population graphs and f statistics
+Demographic history
 ================
 Margaux Lefebvre
 2024-04-25
