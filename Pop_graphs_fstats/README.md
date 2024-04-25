@@ -38,6 +38,7 @@ plink2 --vcf subset.ebro_no_miss.vcf.gz --double-id --allow-extra-chr \
 plink2 --vcf subset.ebro_no_miss.vcf.gz --double-id --allow-extra-chr --set-missing-var-ids @:# \
 --extract Prune.prune.in --mind --geno --mac 1 \
 --export ped --make-just-fam --out Pvivax_tree #-make-just-fam to get the samples names remaining
+# It creates also the input files for ADMIXTOOLS2
 ```
 
 ## Create input format for TreeMix.
@@ -270,6 +271,9 @@ done
 Version: R v4.2, ADMIXTOOLS2 v2.0.0.
 
 ## Read and compute the f2
+
+The input file are `.bim`, `.bed` and `.fam`. It’s already generated
+during the TreeMix pipeline.
 
 ``` r
 library(admixtools)
