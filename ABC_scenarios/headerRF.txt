@@ -1,0 +1,202 @@
+core_genome.pruned.ebro2.nomiss.haplo.clear.clean.DIYABC.snp
+29 parameters and 50 summary statistics
+
+12 scenarios: 8 9 8 9 11 10 10 9 9 10 11 11
+scenario 1 [0.08333] (9)
+NCol NMauri NEbro
+0 sample 1
+0 sample 2
+413 sample 3
+tdivadm-tbot varNe 1 Nbot
+tdivadm split 1 2 3 ra
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 2 [0.08333] (9)
+NCol NMauri NEbro
+0 sample 1
+0 sample 2
+413 sample 3
+tdivebram-tbot varNe 1 Nbot
+tdivebram merge 3 1
+tdivebram varNe 3 NAncEbro
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 3 [0.08333] (8)
+NCol NMauri NEbro
+0 sample 1
+0 sample 2
+413 sample 3
+tdivamaf-tbot varNe 1 Nbot
+tdivamaf merge 2 1
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 4 [0.08333] (10)
+NCol NMauri NEbro
+0 sample 1
+0 sample 2
+413 sample 3
+tdivebram-tbotebro varNe 3 NbotEbro
+tdivebram merge 1 3
+tdivamaf-tbot varNe 1 Nbot
+tdivamaf merge 2 1
+tdivamaf varNe 2 Nanc
+scenario 5 [0.08333] (14)
+NCol NMauri NEbro Nghost
+0 sample 1
+0 sample 2
+413 sample 3
+tadmebro-tbotebro varNe 3 NbotEbro
+tadmebro split 3 1 4 ra
+tdiv1-tbot varNe 1 Nbot
+tdiv1 merge 2 1
+tdiv1 varNe 2 Nanc1
+tdiv2 merge 2 4
+tdiv2 varNe 2 Nanc2
+scenario 6 [0.08333] (12)
+NCol NMauri NEbro Nghostam
+0 sample 1
+0 sample 2
+413 sample 3
+tct2 split 1 3 4 ra
+tdivebram-tbot varNe 4 Nbot
+tdivebram merge 3 4
+tdivebram varNe 3 NAncEbro
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 7 [0.08333] (12)
+NCol NMauri NEbro Nghostam
+0 sample 1
+0 sample 2
+413 sample 3
+tct2 split 1 2 4 ra
+tdivebram-tbot varNe 4 Nbot
+tdivebram merge 3 4
+tdivebram varNe 3 NAncEbro
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 8 [0.08333] (11)
+NCol NMauri NEbro Nghostam
+0 sample 1
+0 sample 2
+413 sample 3
+tct2 split 1 3 4 ra
+tdivamaf2-tbot varNe 4 Nbot
+tdivamaf2 merge 2 4
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 9 [0.08333] (11)
+NCol NMauri NEbro Nghostam
+0 sample 1
+0 sample 2
+413 sample 3
+tct2 split 1 2 4 ra
+tdivamaf2-tbot varNe 4 Nbot
+tdivamaf2 merge 2 4
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 10 [0.08333] (12)
+NCol NMauri NEbro NghostEbro
+0 sample 1
+0 sample 2
+413 sample 3
+tct2 split 3 1 4 ra
+tdivebram-tbot varNe 1 Nbot
+tdivebram merge 4 1
+tdivebram varNe 4 NAncEbro
+tdivebraf merge 2 4
+tdivebraf varNe 2 Nanc
+scenario 11 [0.08333] (15)
+NCol NMauri NEbro Nghostam Nghost2
+0 sample 1
+0 sample 2
+413 sample 3
+tct3 split 1 2 5 ra2
+tct2 split 5 3 4 ra
+tdivebram-tbot varNe 4 Nbot
+tdivebram merge 3 4
+tdivebram varNe 3 NAncEbro
+tdivebraf merge 2 3
+tdivebraf varNe 2 Nanc
+scenario 12 [0.08333] (14)
+NCol NMauri NEbro Nghost
+0 sample 1
+0 sample 2
+413 sample 3
+tadmebro-tbotebro varNe 3 NbotEbro
+tadmebro split 3 1 4 ra
+tdiv2b merge 2 4
+tdiv2b varNe 2 Nanc2
+tdiv1b-tbot varNe 1 Nbot
+tdiv1b merge 2 1
+tdiv1b varNe 2 Nanc1
+
+historical parameters priors (29,13)
+Nbot N UN[1,100,0,0]
+Nanc N UN[100,150000,0,0]
+NCol N UN[10,100000,0,0]
+NMauri N UN[10,10000,0,0]
+NEbro N UN[10,50000,0,0]
+NbotEbro N UN[1,10,0,0]
+Nanc1 N UN[200,150000,0,0]
+Nanc2 N UN[200,150000,0,0]
+Nghost N UN[200,100000,0,0]
+Nghostam N UN[10,100000,0,0]
+NghostEbro N UN[10,50000,0,0]
+Nghost2 N UN[10,100000,0,0]
+NAncEbro N UN[10,50000,0,0]
+tdivadm T UN[500,5500,0,0]
+tbot T UN[1,10,0,0]
+tdivebraf T UN[500,5500,0,0]
+tdivebram T UN[500,5500,0,0]
+tbotebro T UN[1,10,0,0]
+tdivamaf T UN[750,8500,0,0]
+tadmebro T UN[500,6500,0,0]
+tdiv1 T UN[500,8500,0,0]
+tdiv2 T UN[750,8500,0,0]
+tct2 T UN[750,7500,0,0]
+tdivamaf2 T UN[750,6500,0,0]
+tct3 T UN[750,7500,0,0]
+tdiv2b T UN[750,8500,0,0]
+tdiv1b T UN[500,8500,0,0]
+ra A UN[0.01,0.99,0,0]
+ra2 A UN[0.01,0.99,0,0]
+tdivadm<tdivebraf
+tdivebram<tdivamaf
+tdivebram<tdivebraf
+tadmebro<tdiv1
+tadmebro<tdiv2
+tadmebro<tdiv1b
+tadmebro<tdiv2b
+tdiv1b>tdiv2b
+tdiv1<tdiv2
+tct2<tdivamaf2
+tct2<tdivebram
+tdivamaf2<tdivebraf
+tct3<tct2
+DRAW UNTIL
+
+loci description (1)
+3139 <H> G1 from 1
+
+group summary statistics (50)
+group G1 (50)
+ML1p 1 2 3
+ML2p 1.2 1.3 2.3
+HWm 1 2 3
+HWv 1 2 3
+HBm 1.2 1.3 2.3
+HBv 1.2 1.3 2.3
+FST1m 1 2 3
+FST1v 1 2 3
+FST2m 1.2 1.3 2.3
+FST2v 1.2 1.3 2.3
+NEIm 1.2 1.3 2.3
+NEIv 1.2 1.3 2.3
+AMLm 1.2.3 2.1.3 3.1.2
+AMLv 1.2.3 2.1.3 3.1.2
+FST3m 1.2.3
+FST3v 1.2.3
+F3m 1.2.3 2.1.3 3.1.2
+F3v 1.2.3 2.1.3 3.1.2
+
+scenario Nbot Nanc NCol NMauri NEbro NbotEbro Nanc1 Nanc2 Nghost Nghostam NghostEbro Nghost2 NAncEbro tdivadm tbot tdivebraf tdivebram tbotebro tdivamaf tadmebro tdiv1 tdiv2 tct2 tdivamaf2 tct3 tdiv2b tdiv1b ra ra2    ML1p_1        ML1p_2        ML1p_3       ML2p_1.2      ML2p_1.3      ML2p_2.3       HWm_1         HWm_2         HWm_3         HWv_1         HWv_2         HWv_3        HBm_1.2       HBm_1.3       HBm_2.3       HBv_1.2       HBv_1.3       HBv_2.3       FST1m_1       FST1m_2       FST1m_3       FST1v_1       FST1v_2       FST1v_3      FST2m_1.2     FST2m_1.3     FST2m_2.3     FST2v_1.2     FST2v_1.3     FST2v_2.3      NEIm_1.2      NEIm_1.3      NEIm_2.3      NEIv_1.2      NEIv_1.3      NEIv_2.3     AMLm_1.2.3    AMLm_2.1.3    AMLm_3.1.2    AMLv_1.2.3    AMLv_2.1.3    AMLv_3.1.2   FST3m_1.2.3   FST3v_1.2.3    F3m_1.2.3     F3m_2.1.3     F3m_3.1.2     F3v_1.2.3     F3v_2.1.3     F3v_3.1.2   
