@@ -2,7 +2,7 @@
 
 This repository is for this paper:
 
-The languages used are mainly bash and R. At the end of the README of each part, there is a description of the software used (with its version) and the information of the R session.
+The languages used are mainly bash and R. For each part, software and version are specified.
 
 # Summary
 
