@@ -135,6 +135,34 @@ echo "--> Start processing: $downId" #downId is the name of the sample
 java -Xss5m -jar /usr/local/picard-tools-2.5.0/picard.jar FilterSamReads I=$downId.PV.mem.sort.bam O=$downId.PV.mono.mem.bam READ_LIST_FILE=$downId.remove_reads_mem.txt FILTER=excludeReadList
 ```
 
+## Deal with post-mortem damage
+
+Version: mapdamage2 v2.2.1.
+
+Here I use [map damage2](http://ginolhac.github.io/mapDamage/) to check and recalibrate base quality.
+
+```{bash}
+echo "--> Start processing: $downId" #downId is the name of the sample
+
+# Plot
+mapDamage -i $downId.PV.mono.mem.bam -r $REF
+# Rescale
+mapDamage -i $downId.PV.mono.mem.bam -r $REF --rescale
+```
+
+With the mis-incorporation plots created by mapDamage 2, we can visualize the damage patterns. The legend can be found on the [website of Mapdamage 2](https://ginolhac.github.io/mapDamage/), but here a little idea :
+
+> The four upper mini-plots show the base frequency outside and in the read (the open grey box corresponds to the read). The bottom plots are the positions' specific substitutions from the 5" (left) and the 3" end (right). The following color codes are used in the bottom plots =>
+Red: C to T substitutions.
+Blue: G to A substitutions.
+Grey: All other substitutions.
+Orange: Soft-clipped bases.
+Green: Deletions relative to the reference.
+Purple: Insertions relative to the reference.
+
+We find exactly the same plot than [Van Dorp *et al.* (2020)](https://doi.org/10.1093/molbev/msz264) for lane-8.
+Contrary to [Van Dorp *et al.* (2020)](https://doi.org/10.1093/molbev/msz264), I decided to rescale base quality with MapDamage2.0, as it's the gold standard, see [here](https://www.researchgate.net/profile/Michael-Martin-34/publication/261511159_Characterization_of_ancient_and_modern_genomes_by_SNP_detection_and_phylogenomic_and_metagenomic_analysis_using_PALEOMIX/links/54401b190cf2fd72f99dd03b/Characterization-of-ancient-and-modern-genomes-by-SNP-detection-and-phylogenomic-and-metagenomic-analysis-using-PALEOMIX.pdf).
+
 # Produce unfiltered VCF with all samples
 
 ## Mapping
