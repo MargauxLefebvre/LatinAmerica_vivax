@@ -1,10 +1,10 @@
-# Unraveling the complex journey of Plasmodium vivax in Latin America: a genomic approach
+# Unraveling the journey of Plasmodium vivax in Latin America: a genomic approach
 
 This repository is for this paper:
 
-**Genomic exploration of the complex journey of *Plasmodium vivax* in Latin America,** M. J. M. Lefebvre, F. Degrugillier, C. Arnathau, G. A. Fontecha, O. Noya, S. Houzé, C. Severini, B. Pradines, A. Berry, J-F. Trape, F. E. Sáenz, F. Prugnolle, M. C. Fontaine, V. Rougeron.
+**Genomic exploration of the journey of *Plasmodium vivax* in Latin America**, M. J. M. Lefebvre, F. Degrugillier, C. Arnathau, G. A. Fontecha, O. Noya, S. Houzé, C. Severini, B. Pradines, A. Berry, J-F. Trape, F. E. Sáenz, F. Prugnolle, M. C. Fontaine, V. Rougeron. *PLOS Pathogens* 21(1): e1012811. 
 
-doi: <https://doi.org/10.1101/2024.05.08.592893>
+doi: <https://doi.org/10.1371/journal.ppat.1012811>
 
 The languages used are mainly bash and R. For each part, software and version are specified.
 
